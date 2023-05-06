@@ -1,6 +1,7 @@
-from rest_framework import generics, permissions
+from .models import Review, Streets, Contractors
 from rest_framework import serializers
 from django.contrib.auth.models import User
+
 
 # User Serializer
 class UserSerializer(serializers.ModelSerializer):
@@ -27,14 +28,33 @@ class UserSerializer(serializers.ModelSerializer):
     fields = ('id', 'username', 'email')
 
 # Change Password
-from rest_framework import serializers
-from django.contrib.auth.models import User
 
 class ChangePasswordSerializer(serializers.Serializer):
     model = User
-
-    """
-    Serializer for password change endpoint.
-    """
     old_password = serializers.CharField(required=True)
     new_password = serializers.CharField(required=True)
+
+
+#REVIEW
+class ReviewSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Review
+        fields = '__all__'
+
+class RetingStrets(serializers.ModelSerializer):
+     class Meta:
+         model = Streets
+         fields = '__all__'
+
+class ViewContractors(serializers.ModelSerializer):
+    class Meta:
+        model = Contractors
+        fields = '__all__'
+
+from rest_framework import serializers
+from .models import Profile
+
+class ProfileSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Profile
+        fields = ('id', 'owner', 'story', 'number_of_complains', 'rating')

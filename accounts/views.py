@@ -4,10 +4,13 @@ from rest_framework.authtoken.serializers import AuthTokenSerializer
 from knox.views import LoginView as KnoxLoginView
 
 from rest_framework import generics, permissions
-from rest_framework.response import Response
+from rest_framework.decorators import api_view
 from knox.models import AuthToken
-from .serializers import UserSerializer, RegisterSerializer, ChangePasswordSerializer
-from django.views.decorators.debug import sensitive_post_parameters
+from rest_framework.exceptions import PermissionDenied
+
+from .serializers import UserSerializer, RegisterSerializer, ChangePasswordSerializer, ReviewSerializer, \
+    ViewContractors, ProfileSerializer
+from .models import Review, Contractors, Profile
 
 from rest_framework.views import APIView
 
@@ -51,7 +54,8 @@ from rest_framework import generics
 from rest_framework.response import Response
 from django.contrib.auth.models import User
 from .serializers import ChangePasswordSerializer
-from rest_framework.permissions import IsAuthenticated   
+from rest_framework.permissions import IsAuthenticated, IsAuthenticatedOrReadOnly, AllowAny
+
 
 class ChangePasswordView(generics.UpdateAPIView):
     """
@@ -86,3 +90,44 @@ class ChangePasswordView(generics.UpdateAPIView):
             return Response(response)
 
         return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+
+#REVIEW
+class Review_List(generics.ListAPIView):
+    queryset = Review.objects.all()
+    serializer_class = ReviewSerializer
+
+@api_view(['POST'])
+def reviewListCreateView(request):
+    serializer = ReviewSerializer(data=request.data)
+    if serializer.is_valid():
+        serializer.save()
+        return Response(serializer.data, status=status.HTTP_201_CREATED)
+    return Response(serializer.errors, status=status.HTTP_400_BAD_REQUEST)
+class View_Contractors(generics.ListAPIView):
+    queryset = Contractors.objects.all()
+    serializer_class = ViewContractors
+
+class Detail_View_Contractors(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Contractors.objects.all().order_by('-rating')
+    serializer_class = ViewContractors
+
+class ProfileListCreateView(generics.ListCreateAPIView):
+    queryset = Profile.objects.all()
+    serializer_class = ProfileSerializer
+
+class ProfileRetrieveUpdateDestroyView(generics.RetrieveUpdateDestroyAPIView):
+    queryset = Profile.objects.all()
+    serializer_class = ProfileSerializer
+
+    # optional: add permissions to only allow the owner to update/delete their own profile
+    def perform_update(self, serializer):
+        if serializer.validated_data.get('owner') == self.request.user:
+            serializer.save()
+        else:
+            raise PermissionDenied("You do not have permission to update this profile.")
+
+    def perform_destroy(self, instance):
+        if instance.owner == self.request.user:
+            instance.delete()
+        else:
+            raise PermissionDenied("You do not have permission to delete this profile.")
